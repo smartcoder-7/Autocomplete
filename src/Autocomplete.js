@@ -1,52 +1,46 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-export class Autocomplete extends Component {
+class Autocomplete extends Component {
   static propTypes = {
-    options: PropTypes.instanceOf(Array).isRequired
+    options: PropTypes.instanceOf(Array).isRequired,
+    onChange: PropTypes.func.isRequired,
+    loading: PropTypes.bool.isRequired,
   };
+
   state = {
     activeOption: 0,
-    filteredOptions: [],
     showOptions: false,
-    userInput: ''
+    userInput: '',
   };
 
   onChange = (e) => {
-    console.log('onChanges');
-
-    const { options } = this.props;
-    const userInput = e.currentTarget.value;
-
-    const filteredOptions = options.filter(
-      (optionName) =>
-        optionName.toLowerCase().indexOf(userInput.toLowerCase()) > -1
-    );
+    const { onChange } = this.props;
+    onChange(e.currentTarget.value);
 
     this.setState({
       activeOption: 0,
-      filteredOptions,
       showOptions: true,
-      userInput: e.currentTarget.value
+      userInput: e.currentTarget.value,
     });
   };
 
   onClick = (e) => {
     this.setState({
       activeOption: 0,
-      filteredOptions: [],
       showOptions: false,
-      userInput: e.currentTarget.innerText
+      userInput: e.currentTarget.innerText,
     });
   };
-  onKeyDown = (e) => {
-    const { activeOption, filteredOptions } = this.state;
 
+  onKeyDown = (e) => {
+    const { activeOption } = this.state;
+    const { options } = this.props;
     if (e.keyCode === 13) {
       this.setState({
         activeOption: 0,
         showOptions: false,
-        userInput: filteredOptions[activeOption]
+        userInput: options[activeOption],
       });
     } else if (e.keyCode === 38) {
       if (activeOption === 0) {
@@ -54,8 +48,7 @@ export class Autocomplete extends Component {
       }
       this.setState({ activeOption: activeOption - 1 });
     } else if (e.keyCode === 40) {
-      if (activeOption === filteredOptions.length - 1) {
-        console.log(activeOption);
+      if (activeOption === options.length - 1) {
         return;
       }
       this.setState({ activeOption: activeOption + 1 });
@@ -67,21 +60,25 @@ export class Autocomplete extends Component {
       onChange,
       onClick,
       onKeyDown,
-
-      state: { activeOption, filteredOptions, showOptions, userInput }
+      state: { activeOption, showOptions, userInput },
     } = this;
+    const { loading, options } = this.props;
     let optionList;
     if (showOptions && userInput) {
-      if (filteredOptions.length) {
+      if (options.length) {
         optionList = (
           <ul className="options">
-            {filteredOptions.map((optionName, index) => {
+            {options.map((optionName, index) => {
               let className;
               if (index === activeOption) {
                 className = 'option-active';
               }
               return (
-                <li className={className} key={optionName} onClick={onClick}>
+                <li
+                  className={className}
+                  key={optionName + index}
+                  onClick={onClick}
+                >
                   {optionName}
                 </li>
               );
@@ -108,7 +105,13 @@ export class Autocomplete extends Component {
           />
           <input type="submit" value="" className="search-btn" />
         </div>
-        {optionList}
+        {loading ? (
+          <div className="no-options">
+            <em>Loading...</em>
+          </div>
+        ) : (
+          optionList
+        )}
       </React.Fragment>
     );
   }

@@ -1,40 +1,43 @@
-import React from 'react';
-import Autocomplete from './Autocomplete';
+import React, { Component } from 'react';
 
-class App extends React.Component {
+import Autocomplete from './Autocomplete';
+import { debounce } from './utils/debounce';
+import { asyncSearch } from './utils/asyncSearch';
+
+class App extends Component {
   state = {
     loading: false,
     suggestions: [],
+    searchText: '',
   };
 
-  componentDidMount = async () => {
-    try {
-      this.setState({ loading: true });
-      const response = await fetch(
-        'https://jsonplaceholder.typicode.com/users/1/todos',
-      );
-      const data = await response.json();
-      const suggestions = data.reduce((acc, current) => {
-        acc.push(current.title);
-        return acc;
-      }, []);
-      this.setState({ suggestions });
-    } catch (err) {
-      this.setState({ loading: false });
-      console.error('Errors occured!', err);
-    } finally {
-      this.setState({ loading: false });
+  handleInputChange = (value) => {
+    this.setState({ searchText: value });
+  };
+
+  componentDidUpdate = async (prevProps, prevState, snapshot) => {
+    if (this.state.searchText !== prevState.searchText) {
+      try {
+        this.setState({ loading: true });
+        const results = await asyncSearch(this.state.searchText);
+        this.setState({ suggestions: results });
+      } catch (err) {
+        this.setState({ loading: false });
+      } finally {
+        this.setState({ loading: false });
+      }
     }
   };
+
   render() {
     const { suggestions, loading } = this.state;
     return (
       <div className="App">
-        {loading ? (
-          <div>Loading suggestions...</div>
-        ) : (
-          <Autocomplete options={suggestions} />
-        )}
+        <Autocomplete
+          loading={loading}
+          options={suggestions}
+          onChange={debounce(this.handleInputChange, 500)}
+        />
       </div>
     );
   }
